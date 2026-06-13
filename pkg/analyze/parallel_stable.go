@@ -81,6 +81,9 @@ func (a *ParallelStableOrderAnalyzer) processDir(path string) *Dir {
 	itemChan := make(chan indexedItem, len(files))
 
 	for _, f := range files {
+		if a.shouldStop() {
+			break // stop mid-directory; return partial results
+		}
 		name := f.Name()
 		entryPath := filepath.Join(path, name)
 
@@ -88,14 +91,17 @@ func (a *ParallelStableOrderAnalyzer) processDir(path string) *Dir {
 			if a.ignoreDir(name, entryPath) {
 				continue
 			}
-			if a.shouldStop() {
-				continue // stop descending; return partial results
-			}
 			currentIndex := itemCount
 			itemCount++
 			dirCount++
 
 			go func(entryPath string, idx int) {
+				if a.shouldStop() {
+					subdir := newEmptyDir(entryPath)
+					subdir.Parent = dir
+					itemChan <- indexedItem{idx, subdir}
+					return
+				}
 				concurrencyLimit <- struct{}{}
 				subdir := a.processDir(entryPath)
 				subdir.Parent = dir

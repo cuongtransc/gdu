@@ -68,14 +68,14 @@ func (a *SequentialAnalyzer) processDir(path string) *Dir {
 	setDirPlatformSpecificAttrs(dir, path)
 
 	for _, f := range files {
+		if a.shouldStop() {
+			break // stop mid-directory; return partial results
+		}
 		name := f.Name()
 		entryPath := filepath.Join(path, name)
 		if f.IsDir() {
 			if a.ignoreDir(name, entryPath) {
 				continue
-			}
-			if a.shouldStop() {
-				continue // stop descending; return partial results
 			}
 			dirCount++
 

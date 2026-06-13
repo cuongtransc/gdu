@@ -79,18 +79,30 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 	setDirPlatformSpecificAttrs(dir, path)
 
 	for _, f := range files {
+		// Stop as soon as requested, mid-directory: this releases the
+		// concurrency slot quickly instead of stat-ing every remaining file in
+		// a large directory, so the scan drains in well under a second.
+		if a.shouldStop() {
+			break
+		}
 		name := f.Name()
 		entryPath := filepath.Join(path, name)
 		if f.IsDir() {
 			if a.ignoreDir(name, entryPath) {
 				continue
 			}
-			if a.shouldStop() {
-				continue // stop descending; return partial results
-			}
 			dirCount++
 
 			go func(entryPath string) {
+				// If a stop was requested before this goroutine got a slot,
+				// skip the semaphore and the scan entirely; the parent collector
+				// still needs exactly one item per spawned subdir.
+				if a.shouldStop() {
+					sub := newEmptyDir(entryPath)
+					sub.Parent = dir
+					subDirChan <- sub
+					return
+				}
 				concurrencyLimit <- struct{}{}
 				subdir := a.processDir(entryPath)
 				subdir.Parent = dir
