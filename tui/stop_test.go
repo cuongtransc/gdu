@@ -2,6 +2,7 @@ package tui
 
 import (
 	"bytes"
+	"syscall"
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
@@ -53,6 +54,36 @@ func TestEscapeWhileBrowsingDoesNotStop(t *testing.T) {
 
 	ui.keyPressed(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
 
+	assert.False(t, ui.Analyzer.IsStopped())
+}
+
+// SIGINT during a scan must stop the scan (keep app running), not quit.
+func TestSigintDuringScanStopsScan(t *testing.T) {
+	simScreen := testapp.CreateSimScreen()
+	defer simScreen.Fini()
+
+	app := testapp.CreateMockedApp(false)
+	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
+
+	ui.scanning.Store(true) // simulate a scan in progress
+
+	keepRunning := ui.handleSignal(syscall.SIGINT)
+
+	assert.True(t, keepRunning, "app should keep running after stopping the scan")
+	assert.True(t, ui.Analyzer.IsStopped())
+}
+
+// SIGINT while browsing (no scan) quits as before.
+func TestSigintWhileBrowsingQuits(t *testing.T) {
+	simScreen := testapp.CreateSimScreen()
+	defer simScreen.Fini()
+
+	app := testapp.CreateMockedApp(false)
+	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
+
+	keepRunning := ui.handleSignal(syscall.SIGINT)
+
+	assert.False(t, keepRunning, "app should quit when not scanning")
 	assert.False(t, ui.Analyzer.IsStopped())
 }
 

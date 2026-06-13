@@ -102,6 +102,7 @@ type UI struct {
 	scanTimeout             time.Duration
 	scanStopped             bool
 	scanTimedOut            atomic.Bool
+	scanning                atomic.Bool
 }
 
 type deleteQueueItem struct {
@@ -336,15 +337,30 @@ func (ui *UI) StartUILoop() error {
 			syscall.SIGPIPE,
 			syscall.SIGTERM,
 		)
-		s := <-c
-		log.Printf("Got signal: %s", s)
-		ui.app.QueueUpdateDraw(func() {
-			ui.printMarkedPaths()
-			ui.app.Stop()
-		})
+		for s := range c {
+			log.Printf("Got signal: %s", s)
+			if !ui.handleSignal(s) {
+				return
+			}
+		}
 	}()
 
 	return ui.app.Run()
+}
+
+// handleSignal reacts to an OS signal. A SIGINT received while a scan is in
+// progress stops the scan and shows partial results (returning true to keep the
+// app running); any other case prints marked paths and quits (returning false).
+func (ui *UI) handleSignal(s os.Signal) bool {
+	if s == syscall.SIGINT && ui.scanning.Load() {
+		ui.Analyzer.Stop()
+		return true
+	}
+	ui.app.QueueUpdateDraw(func() {
+		ui.printMarkedPaths()
+		ui.app.Stop()
+	})
+	return false
 }
 
 // SetShowItemCount sets the flag to show number of items in directory

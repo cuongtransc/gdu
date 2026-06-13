@@ -81,6 +81,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 
 	ui.scanStopped = false
 	ui.scanTimedOut.Store(false)
+	ui.scanning.Store(true)
 
 	analyzer := ui.Analyzer
 	doneChan := analyzer.GetDone()
@@ -101,6 +102,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		if scanTimer != nil {
 			scanTimer.Stop()
 		}
+		ui.scanning.Store(false)
 
 		if parentDir != nil {
 			currentDir.SetParent(parentDir)
