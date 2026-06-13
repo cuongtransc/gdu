@@ -103,6 +103,7 @@ type UI struct {
 	scanStopped             bool
 	scanTimedOut            atomic.Bool
 	scanning                atomic.Bool
+	scanStopAtNanos         atomic.Int64
 }
 
 type deleteQueueItem struct {
@@ -348,12 +349,30 @@ func (ui *UI) StartUILoop() error {
 	return ui.app.Run()
 }
 
+// markStopTime records the instant the scan stop was first requested, so the
+// time spent draining and finalizing partial results can be shown. Safe to call
+// from any goroutine; only the first call takes effect.
+func (ui *UI) markStopTime() {
+	ui.scanStopAtNanos.CompareAndSwap(0, time.Now().UnixNano())
+}
+
+// timeSinceStop returns how long ago the scan stop was requested, or 0 if no
+// stop has been requested yet.
+func (ui *UI) timeSinceStop() time.Duration {
+	at := ui.scanStopAtNanos.Load()
+	if at == 0 {
+		return 0
+	}
+	return time.Since(time.Unix(0, at))
+}
+
 // handleSignal reacts to an OS signal. A SIGINT received while a scan is in
 // progress stops the scan and shows partial results (returning true to keep the
 // app running); any other case prints marked paths and quits (returning false).
 func (ui *UI) handleSignal(s os.Signal) bool {
 	if s == syscall.SIGINT && ui.scanning.Load() {
 		ui.Analyzer.Stop()
+		ui.markStopTime()
 		ui.app.QueueUpdateDraw(ui.showScanStopping) // immediate feedback
 		return true
 	}

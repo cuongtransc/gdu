@@ -346,16 +346,20 @@ func (ui *UI) showErr(msg string, err error) {
 
 // showScanStopped displays a one-time modal summarizing a scan that was stopped
 // early (by timeout or user interrupt), before the user browses partial results.
-func (ui *UI) showScanStopped(reason string, stats common.CurrentProgress, elapsed time.Duration) {
+func (ui *UI) showScanStopped(
+	reason string, stats common.CurrentProgress, elapsed, sinceStop time.Duration,
+) {
 	text := fmt.Sprintf(
 		"Scan stopped (%s).\n\nShowing partial results for what was scanned:\n"+
-			"  Items scanned: %s\n"+
-			"  Size scanned:  %s\n"+
-			"  Elapsed time:  %s",
+			"  Items scanned:    %s\n"+
+			"  Size scanned:     %s\n"+
+			"  Total scan time:  %s\n"+
+			"  Stop → report:    %s",
 		reason,
 		common.FormatNumber(stats.ItemCount),
 		ui.formatSize(stats.TotalUsage, false, false),
 		elapsed.Round(time.Second),
+		sinceStop.Round(time.Second),
 	)
 
 	modal := tview.NewModal().

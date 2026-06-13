@@ -82,6 +82,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 	ui.scanStopped = false
 	ui.scanTimedOut.Store(false)
 	ui.scanning.Store(true)
+	ui.scanStopAtNanos.Store(0)
 
 	analyzer := ui.Analyzer
 	doneChan := analyzer.GetDone()
@@ -93,6 +94,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		scanTimer = time.AfterFunc(ui.scanTimeout, func() {
 			ui.scanTimedOut.Store(true)
 			analyzer.Stop()
+			ui.markStopTime()
 		})
 	}
 
@@ -130,6 +132,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 			}
 		}
 		elapsed := time.Since(scanStart)
+		sinceStop := ui.timeSinceStop()
 
 		ui.app.QueueUpdateDraw(func() {
 			ui.currentDir = currentDir
@@ -139,7 +142,7 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 			ui.showDir()
 			ui.pages.RemovePage("progress")
 			if stopped {
-				ui.showScanStopped(stopReason, stoppedStats, elapsed)
+				ui.showScanStopped(stopReason, stoppedStats, elapsed, sinceStop)
 			}
 		})
 

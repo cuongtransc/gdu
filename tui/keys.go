@@ -47,6 +47,7 @@ func (ui *UI) keyPressed(key *tcell.EventKey) *tcell.EventKey {
 		// During scanning, Esc / Ctrl-C stops the scan and shows partial results.
 		if key.Key() == tcell.KeyEsc || key.Key() == tcell.KeyCtrlC {
 			ui.Analyzer.Stop()
+			ui.markStopTime()
 			ui.showScanStopping() // immediate feedback; tview redraws after this returns nil
 			return nil
 		}

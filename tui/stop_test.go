@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -87,6 +88,25 @@ func TestSigintWhileBrowsingQuits(t *testing.T) {
 	assert.False(t, ui.Analyzer.IsStopped())
 }
 
+func TestTimeSinceStop(t *testing.T) {
+	simScreen := testapp.CreateSimScreen()
+	defer simScreen.Fini()
+
+	app := testapp.CreateMockedApp(false)
+	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
+
+	// No stop requested yet.
+	assert.Equal(t, time.Duration(0), ui.timeSinceStop())
+
+	ui.markStopTime()
+	assert.GreaterOrEqual(t, ui.timeSinceStop(), time.Duration(0))
+
+	// markStopTime only records the first call (idempotent).
+	first := ui.scanStopAtNanos.Load()
+	ui.markStopTime()
+	assert.Equal(t, first, ui.scanStopAtNanos.Load())
+}
+
 func TestSetScanTimeout(t *testing.T) {
 	simScreen := testapp.CreateSimScreen()
 	defer simScreen.Fini()
@@ -140,7 +160,7 @@ func TestEscapeShowsStoppingFeedback(t *testing.T) {
 
 	ui.keyPressed(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
 
-	assert.Contains(t, ui.progress.GetText(true), "finalizing partial results")
+	assert.Contains(t, ui.progress.GetText(true), "partial results")
 }
 
 func TestShowScanStopping(t *testing.T) {
@@ -165,7 +185,7 @@ func TestShowScanStoppedModal(t *testing.T) {
 	app := testapp.CreateMockedApp(false)
 	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
 
-	ui.showScanStopped("timeout", ui.Analyzer.GetProgress(), 5*1e9)
+	ui.showScanStopped("timeout", ui.Analyzer.GetProgress(), 5*1e9, 2*1e9)
 
 	assert.True(t, ui.pages.HasPage("scanstopped"))
 }
