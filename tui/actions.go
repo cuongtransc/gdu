@@ -101,8 +101,6 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 		})
 	}
 
-	log.Printf("AnalyzePath[stop-v3]: scanning %s with %T", path, ui.Analyzer)
-
 	go func() {
 		defer debug.FreeOSMemory()
 		currentDir := ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.CreateFileTypeFilter())
