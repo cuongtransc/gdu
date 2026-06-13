@@ -48,6 +48,8 @@ is not so huge.
 
 **\--until** Include files with mtime <= WHEN. WHEN accepts RFC3339 timestamp or date only YYYY-MM-DD
 
+**\--scan-timeout** Stop scanning after DURATION and show partial results (e.g., 30m, 1h30m). Interactive (TUI) mode only. The scan can also be stopped at any time by pressing Esc or Ctrl-C.
+
 **-l**, **\--log-file**=\"/dev/null\" Path to a logfile
 
 **-m**, **\--max-cores** Set max cores that Gdu will use.

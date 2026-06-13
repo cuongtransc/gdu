@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -98,6 +99,9 @@ type UI struct {
 	browseParentDirs        bool
 	showDiskProgressBar     bool
 	currentDeviceSize       int64
+	scanTimeout             time.Duration
+	scanStopped             bool
+	scanTimedOut            atomic.Bool
 }
 
 type deleteQueueItem struct {
@@ -380,6 +384,12 @@ func (ui *UI) SetBrowseParentDirs() {
 // SetCollapsePath sets the flag to collapse paths
 func (ui *UI) SetCollapsePath(value bool) {
 	ui.collapsePath = value
+}
+
+// SetScanTimeout sets the maximum duration of a scan. When the timeout elapses,
+// scanning stops and partial results are shown.
+func (ui *UI) SetScanTimeout(d time.Duration) {
+	ui.scanTimeout = d
 }
 
 // SetShowDiskProgressBar sets whether to show a progress bar when scanning a whole disk

@@ -88,6 +88,12 @@ func (a *MockedAnalyzer) GetDone() SignalGroup {
 // ResetProgress does nothing
 func (a *MockedAnalyzer) ResetProgress() {}
 
+// Stop does nothing
+func (a *MockedAnalyzer) Stop() {}
+
+// IsStopped always returns false
+func (a *MockedAnalyzer) IsStopped() bool { return false }
+
 // SetFollowSymlinks does nothing
 func (a *MockedAnalyzer) SetFollowSymlinks(v bool) {
 	a.FollowSymlinks = v

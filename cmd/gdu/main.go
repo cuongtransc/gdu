@@ -109,6 +109,10 @@ func init() {
 	flags.StringVar(&af.Until, "until", "", "Include files with mtime <= WHEN. WHEN accepts RFC3339 timestamp or date only YYYY-MM-DD")
 	flags.StringVar(&af.MaxAge, "max-age", "", "Include files with mtime no older than DURATION (e.g., 7d, 2h30m, 1y2mo)")
 	flags.StringVar(&af.MinAge, "min-age", "", "Include files with mtime at least DURATION old (e.g., 30d, 1w)")
+	flags.StringVar(
+		&af.ScanTimeout, "scan-timeout", "",
+		"Stop scanning after DURATION and show partial results (e.g., 30m, 1h30m). TUI mode only",
+	)
 
 	initConfig()
 	setDefaults()

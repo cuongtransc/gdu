@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/dundee/gdu/v5/build"
+	"github.com/dundee/gdu/v5/internal/common"
 	"github.com/dundee/gdu/v5/pkg/fs"
 )
 
@@ -50,6 +52,21 @@ Sort by (twice toggles asc/desc):
                [::b]M     [white:black:-]Sort by mtime (asc/desc)`
 )
 
+// setCurrentDirLabel renders the path header above the table, prefixing a
+// marker when the displayed tree comes from a scan that was stopped early.
+func (ui *UI) setCurrentDirLabel() {
+	partialMarker := ""
+	if ui.scanStopped {
+		partialMarker = "[red::b][!] partial scan[-::-] "
+	}
+
+	ui.currentDirLabel.SetText(partialMarker + "[::b] --- " +
+		tview.Escape(
+			strings.TrimPrefix(ui.currentDirPath, build.RootPathPrefix),
+		) +
+		" ---").SetDynamicColors(true)
+}
+
 // nolint: funlen // Why: complex function
 func (ui *UI) showDir() {
 	var (
@@ -70,11 +87,7 @@ func (ui *UI) showDir() {
 		log.Printf("changing cwd to %s", ui.currentDirPath)
 	}
 
-	ui.currentDirLabel.SetText("[::b] --- " +
-		tview.Escape(
-			strings.TrimPrefix(ui.currentDirPath, build.RootPathPrefix),
-		) +
-		" ---").SetDynamicColors(true)
+	ui.setCurrentDirLabel()
 
 	ui.table.Clear()
 
@@ -328,6 +341,35 @@ func (ui *UI) showErr(msg string, err error) {
 	}
 
 	ui.pages.AddPage("error", modal, true, true)
+	ui.app.SetFocus(modal)
+}
+
+// showScanStopped displays a one-time modal summarizing a scan that was stopped
+// early (by timeout or user interrupt), before the user browses partial results.
+func (ui *UI) showScanStopped(reason string, stats common.CurrentProgress, elapsed time.Duration) {
+	text := fmt.Sprintf(
+		"Scan stopped (%s).\n\nShowing partial results for what was scanned:\n"+
+			"  Items scanned: %s\n"+
+			"  Size scanned:  %s\n"+
+			"  Elapsed time:  %s",
+		reason,
+		common.FormatNumber(stats.ItemCount),
+		ui.formatSize(stats.TotalUsage, false, false),
+		elapsed.Round(time.Second),
+	)
+
+	modal := tview.NewModal().
+		SetText(text).
+		AddButtons([]string{"ok"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			ui.pages.RemovePage("scanstopped")
+		})
+
+	if !ui.UseColors {
+		modal.SetBackgroundColor(tcell.ColorGray)
+	}
+
+	ui.pages.AddPage("scanstopped", modal, true, true)
 	ui.app.SetFocus(modal)
 }
 

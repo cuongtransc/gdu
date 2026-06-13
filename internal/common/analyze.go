@@ -32,6 +32,11 @@ type Analyzer interface {
 	GetDone() SignalGroup
 	GetProgress() CurrentProgress
 	ResetProgress()
+	// Stop signals the analyzer to stop descending into not-yet-scanned
+	// directories and return whatever was scanned so far.
+	Stop()
+	// IsStopped reports whether the analyzer was stopped early.
+	IsStopped() bool
 }
 
 // TimeFilter represents a function that determines if a file should be included based on its mtime

@@ -100,6 +100,7 @@ type Flags struct {
 	Until              string   `yaml:"until"`
 	MaxAge             string   `yaml:"max-age"`
 	MinAge             string   `yaml:"min-age"`
+	ScanTimeout        string   `yaml:"scan-timeout"`
 	ArchiveBrowsing    bool     `yaml:"archive-browsing"`
 	CollapsePath       bool     `yaml:"collapse-path"`
 	BrowseParentDirs   bool     `yaml:"browse-parent-dirs"`
@@ -276,6 +277,10 @@ func (a *App) Run() error {
 		return err
 	}
 
+	if err := a.setScanTimeout(ui); err != nil {
+		return err
+	}
+
 	// Process type filters
 	if len(a.Flags.TypeFilter) > 0 {
 		ui.SetIncludeTypes(a.Flags.TypeFilter)
@@ -355,6 +360,30 @@ func (a *App) setTimeFilters(ui UI) error {
 		if tuiUI, ok := ui.(*tui.UI); ok {
 			tuiUI.SetTimeFilterWithInfo(timeFilter, loc)
 		}
+	}
+	return nil
+}
+
+// setScanTimeout parses the --scan-timeout flag and, in interactive (TUI) mode,
+// arms a timer that stops the scan after the given duration. The flag is parsed
+// (and validated) regardless of mode so an invalid value always fails fast.
+func (a *App) setScanTimeout(ui UI) error {
+	if a.Flags.ScanTimeout == "" {
+		return nil
+	}
+
+	timeout, err := time.ParseDuration(a.Flags.ScanTimeout)
+	if err != nil {
+		return fmt.Errorf("invalid scan timeout: %w", err)
+	}
+	if timeout <= 0 {
+		return fmt.Errorf("invalid scan timeout: must be positive, got %q", a.Flags.ScanTimeout)
+	}
+
+	if tuiUI, ok := ui.(*tui.UI); ok {
+		tuiUI.SetScanTimeout(timeout)
+	} else {
+		log.Printf("--scan-timeout is only supported in interactive mode; ignoring")
 	}
 	return nil
 }

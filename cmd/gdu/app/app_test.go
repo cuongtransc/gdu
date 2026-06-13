@@ -67,6 +67,51 @@ func TestInteractiveAndNonInteractiveConflict(t *testing.T) {
 	assert.ErrorContains(t, err, "--interactive and --non-interactive cannot be used at once")
 }
 
+func TestInvalidScanTimeout(t *testing.T) {
+	fin := testdir.CreateTestDir()
+	defer fin()
+
+	out, err := runApp(
+		&Flags{LogFile: "/dev/null", ScanTimeout: "notaduration"},
+		[]string{"test_dir"},
+		false,
+		testdev.DevicesInfoGetterMock{},
+	)
+
+	assert.Empty(t, out)
+	assert.ErrorContains(t, err, "invalid scan timeout")
+}
+
+func TestNegativeScanTimeout(t *testing.T) {
+	fin := testdir.CreateTestDir()
+	defer fin()
+
+	out, err := runApp(
+		&Flags{LogFile: "/dev/null", ScanTimeout: "-5m"},
+		[]string{"test_dir"},
+		false,
+		testdev.DevicesInfoGetterMock{},
+	)
+
+	assert.Empty(t, out)
+	assert.ErrorContains(t, err, "must be positive")
+}
+
+func TestScanTimeoutNonInteractiveIgnored(t *testing.T) {
+	fin := testdir.CreateTestDir()
+	defer fin()
+
+	// In non-interactive mode the flag is parsed/validated but only logged.
+	_, err := runApp(
+		&Flags{LogFile: "/dev/null", ScanTimeout: "30m"},
+		[]string{"test_dir"},
+		false,
+		testdev.DevicesInfoGetterMock{},
+	)
+
+	assert.NoError(t, err)
+}
+
 func TestAnalyzePath(t *testing.T) {
 	fin := testdir.CreateTestDir()
 	defer fin()

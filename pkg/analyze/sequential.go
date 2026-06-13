@@ -70,6 +70,9 @@ func (a *SequentialAnalyzer) processDir(path string) *Dir {
 			if a.ignoreDir(name, entryPath) {
 				continue
 			}
+			if a.shouldStop() {
+				continue // stop descending; return partial results
+			}
 			dirCount++
 
 			subdir := a.processDir(entryPath)

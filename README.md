@@ -72,6 +72,7 @@ Flags:
   -o, --output-file string            Export all info into file as JSON
   -r, --read-from-storage             Use existing database instead of re-scanning
       --reverse-sort                  Reverse sorting order (smallest to largest) in non-interactive mode
+      --scan-timeout string           Stop scanning after DURATION and show partial results (e.g., 30m, 1h30m). TUI mode only
       --sequential                    Use sequential scanning (intended for rotating HDDs)
   -A, --show-annexed-size             Use apparent size of git-annex'ed files in case files are not present locally (real usage is zero)
   -a, --show-apparent-size            Show apparent size

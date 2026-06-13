@@ -23,6 +23,7 @@ type BaseAnalyzer struct {
 	matchesTimeFilterFn     common.TimeFilter
 	archiveBrowsing         bool
 	progressTicker          *time.Ticker
+	stopped                 atomic.Bool
 }
 
 // Init initializes the BaseAnalyzer
@@ -35,6 +36,25 @@ func (a *BaseAnalyzer) Init() {
 	a.progressTotalUsage.Store(0)
 	a.progressCurrentItemName.Store("")
 	a.progressTicker = time.NewTicker(50 * time.Millisecond)
+	a.stopped.Store(false)
+}
+
+// Stop signals the analyzer to stop descending into not-yet-scanned directories.
+// In-flight directories finish processing their already-listed entries, so the
+// scan returns a partial tree of whatever was reached. It is safe to call from
+// another goroutine and is idempotent.
+func (a *BaseAnalyzer) Stop() {
+	a.stopped.Store(true)
+}
+
+// IsStopped reports whether the analyzer was stopped early.
+func (a *BaseAnalyzer) IsStopped() bool {
+	return a.stopped.Load()
+}
+
+// shouldStop reports whether scanning should stop descending into new dirs.
+func (a *BaseAnalyzer) shouldStop() bool {
+	return a.stopped.Load()
 }
 
 // SetFollowSymlinks sets whether symlink to files should be followed

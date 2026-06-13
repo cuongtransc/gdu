@@ -73,6 +73,9 @@ func (a *TopDirAnalyzer) AnalyzeDir(
 			if a.ignoreDir(name, entryPath) {
 				continue
 			}
+			if a.shouldStop() {
+				continue // stop descending; return partial results
+			}
 			topDir := &TopDir{
 				Name: name,
 				Flag: ' ',
@@ -177,6 +180,9 @@ func (a *TopDirAnalyzer) processSubDir(path string, topDir *TopDir) {
 		if f.IsDir() {
 			if a.ignoreDir(name, entryPath) {
 				continue
+			}
+			if a.shouldStop() {
+				continue // stop descending; return partial results
 			}
 
 			totalCount++

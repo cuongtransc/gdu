@@ -79,6 +79,9 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 			if a.ignoreDir(name, entryPath) {
 				continue
 			}
+			if a.shouldStop() {
+				continue // stop descending; return partial results
+			}
 			dirCount++
 
 			go func(entryPath string) {

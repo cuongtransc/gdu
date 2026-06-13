@@ -19,6 +19,7 @@ import (
 	"github.com/rivo/tview"
 
 	"github.com/dundee/gdu/v5/build"
+	"github.com/dundee/gdu/v5/internal/common"
 	"github.com/dundee/gdu/v5/pkg/analyze"
 	"github.com/dundee/gdu/v5/pkg/device"
 	"github.com/dundee/gdu/v5/pkg/fs"
@@ -78,13 +79,28 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 
 	ui.pages.AddPage("progress", flex, true, true)
 
+	ui.scanStopped = false
+	ui.scanTimedOut.Store(false)
+
 	analyzer := ui.Analyzer
 	doneChan := analyzer.GetDone()
 	go ui.updateProgress(analyzer, doneChan)
 
+	scanStart := time.Now()
+	var scanTimer *time.Timer
+	if ui.scanTimeout > 0 {
+		scanTimer = time.AfterFunc(ui.scanTimeout, func() {
+			ui.scanTimedOut.Store(true)
+			analyzer.Stop()
+		})
+	}
+
 	go func() {
 		defer debug.FreeOSMemory()
 		currentDir := ui.Analyzer.AnalyzeDir(path, ui.CreateIgnoreFunc(), ui.CreateFileTypeFilter())
+		if scanTimer != nil {
+			scanTimer.Stop()
+		}
 
 		if parentDir != nil {
 			currentDir.SetParent(parentDir)
@@ -102,10 +118,27 @@ func (ui *UI) AnalyzePath(path string, parentDir fs.Item) error {
 			ui.topDir.UpdateStats(ui.linkedItems)
 		}
 
+		stopped := analyzer.IsStopped()
+		var stoppedStats common.CurrentProgress
+		stopReason := "interrupted"
+		if stopped {
+			stoppedStats = analyzer.GetProgress()
+			if ui.scanTimedOut.Load() {
+				stopReason = "timeout"
+			}
+		}
+		elapsed := time.Since(scanStart)
+
 		ui.app.QueueUpdateDraw(func() {
 			ui.currentDir = currentDir
+			if stopped {
+				ui.scanStopped = true
+			}
 			ui.showDir()
 			ui.pages.RemovePage("progress")
+			if stopped {
+				ui.showScanStopped(stopReason, stoppedStats, elapsed)
+			}
 		})
 
 		if ui.done != nil {

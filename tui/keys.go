@@ -43,8 +43,15 @@ func (ui *UI) keyPressed(key *tcell.EventKey) *tcell.EventKey {
 		return ui.handleConfirmation(key)
 	}
 
-	if ui.pages.HasPage("progress") ||
-		ui.pages.HasPage("deleting") ||
+	if ui.pages.HasPage("progress") {
+		// During scanning, Esc / Ctrl-C stops the scan and shows partial results.
+		if key.Key() == tcell.KeyEsc || key.Key() == tcell.KeyCtrlC {
+			ui.Analyzer.Stop()
+			return nil
+		}
+		return key
+	}
+	if ui.pages.HasPage("deleting") ||
 		ui.pages.HasPage("emptying") {
 		return key
 	}
