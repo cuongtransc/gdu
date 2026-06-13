@@ -353,7 +353,9 @@ func (ui *UI) StartUILoop() error {
 // time spent draining and finalizing partial results can be shown. Safe to call
 // from any goroutine; only the first call takes effect.
 func (ui *UI) markStopTime() {
-	ui.scanStopAtNanos.CompareAndSwap(0, time.Now().UnixNano())
+	if ui.scanStopAtNanos.CompareAndSwap(0, time.Now().UnixNano()) {
+		log.Printf("scan stop requested")
+	}
 }
 
 // timeSinceStop returns how long ago the scan stop was requested, or 0 if no
