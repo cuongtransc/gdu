@@ -66,6 +66,27 @@ func TestStableAnalyzerStoppedBeforeScan(t *testing.T) {
 
 // ResetProgress (used by the TUI before every rescan) must clear the stopped flag
 // so a subsequent scan runs to completion.
+// A stopped scan must short-circuit at directory entry (not read contents at
+// all), so backlogged goroutines drain instantly instead of doing readdir/stat
+// work. test_dir/nested normally contains a file plus a subdir; when stopped
+// before scanning, nothing should be read.
+func TestStoppedScanReadsNoContents(t *testing.T) {
+	fin := testdir.CreateTestDir()
+	defer fin()
+
+	a := CreateAnalyzer()
+	a.Stop()
+
+	dir := a.AnalyzeDir(
+		"test_dir/nested",
+		func(_, _ string) bool { return false },
+		func(_ string) bool { return false },
+	).(*Dir)
+	a.GetDone().Wait()
+
+	assert.Equal(t, 0, len(dir.Files), "stopped scan must not read directory contents")
+}
+
 func TestResetProgressClearsStopped(t *testing.T) {
 	analyzer := CreateAnalyzer()
 	analyzer.Stop()

@@ -58,7 +58,7 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 
 	a.wait.Add(1)
 
-	if a.shouldSkipVisited(path) {
+	if a.shouldSkipDir(path) {
 		a.wait.Done()
 		return newEmptyDir(path)
 	}

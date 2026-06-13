@@ -58,6 +58,15 @@ func (a *BaseAnalyzer) SetDedupDirs(v bool) {
 	a.dedupDirs = v
 }
 
+// shouldSkipDir reports whether a directory should be skipped entirely at scan
+// entry: either a stop was requested (so backlogged goroutines exit immediately
+// instead of doing expensive readdir/stat work) or the directory was already
+// scanned under a different path (dedup). shouldStop is checked first so a
+// stopped scan does not even stat the directory.
+func (a *BaseAnalyzer) shouldSkipDir(path string) bool {
+	return a.shouldStop() || a.shouldSkipVisited(path)
+}
+
 // shouldSkipVisited reports whether path should be skipped because dedup is
 // enabled and the directory was already scanned under a different path.
 func (a *BaseAnalyzer) shouldSkipVisited(path string) bool {

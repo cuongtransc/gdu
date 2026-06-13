@@ -168,7 +168,7 @@ func (a *TopDirAnalyzer) processSubDir(path string, topDir *TopDir) {
 		info       os.FileInfo
 	)
 
-	if a.shouldSkipVisited(path) {
+	if a.shouldSkipDir(path) {
 		return // already scanned under a different path
 	}
 

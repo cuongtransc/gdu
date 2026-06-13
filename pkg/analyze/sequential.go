@@ -48,7 +48,7 @@ func (a *SequentialAnalyzer) processDir(path string) *Dir {
 		dirCount  int
 	)
 
-	if a.shouldSkipVisited(path) {
+	if a.shouldSkipDir(path) {
 		return newEmptyDir(path)
 	}
 
