@@ -145,6 +145,13 @@ otherwise count that volume twice and report roughly double the real usage, so
 flag prevents the same double counting for any aliased directory (firmlinks,
 bind mounts, hard-linked dirs) using device+inode identity.
 
+Cloud File Provider mounts under `~/Library/CloudStorage` (Google Drive,
+Dropbox, OneDrive, Box) are also **ignored by default**. They are network-backed:
+reading their directories can block for minutes (`fdopendir ... operation timed
+out`), which makes a full scan hang, and they only contain online-only
+placeholders that use no local disk. To scan one anyway, point gdu at it
+directly (e.g. `gdu ~/Library/CloudStorage/GoogleDrive-...`).
+
 ## Modes
 
 Gdu has three modes: interactive (default), non-interactive and export.

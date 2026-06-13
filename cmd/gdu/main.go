@@ -121,14 +121,24 @@ func init() {
 }
 
 // defaultIgnoreDirs returns the directories ignored by default, tailored to the
-// host OS. On macOS the Data volume is mounted at /System/Volumes/Data and also
-// surfaced under / via firmlinks (/Users, /Applications, ...); scanning / would
-// otherwise count it twice and report roughly double the real disk usage, so the
-// duplicate mountpoint is ignored by default.
+// host OS.
+//
+// On macOS:
+//   - The Data volume is mounted at /System/Volumes/Data and also surfaced under
+//     / via firmlinks (/Users, /Applications, ...); scanning / would otherwise
+//     count it twice and report roughly double the real disk usage.
+//   - Cloud File Provider mounts under ~/Library/CloudStorage (Google Drive,
+//     Dropbox, OneDrive, Box) are network-backed: reading their directories can
+//     block for minutes (fdopendir "operation timed out") and counts online-only
+//     placeholders that use no local disk. They make a full scan hang and the
+//     reported size wrong, so they are skipped by default.
 func defaultIgnoreDirs() []string {
 	dirs := []string{"/proc", "/dev", "/sys", "/run"}
 	if runtime.GOOS == "darwin" {
 		dirs = append(dirs, "/System/Volumes/Data")
+		if home, err := os.UserHomeDir(); err == nil {
+			dirs = append(dirs, filepath.Join(home, "Library", "CloudStorage"))
+		}
 	}
 	return dirs
 }

@@ -138,6 +138,21 @@ func TestDefaultIgnoreDirsMacOSDataVolume(t *testing.T) {
 	}
 }
 
+func TestDefaultIgnoreDirsMacOSCloudStorage(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS-only cloud-storage default")
+	}
+	found := false
+	for _, d := range defaultIgnoreDirs() {
+		if filepath.Base(d) == "CloudStorage" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected ~/Library/CloudStorage in default ignore dirs on macOS")
+	}
+}
+
 func TestDedupDirsFlagRegistered(t *testing.T) {
 	if rootCmd.Flags().Lookup("dedup-dirs") == nil {
 		t.Fatal("expected dedup-dirs flag to be registered")
