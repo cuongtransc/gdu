@@ -56,7 +56,7 @@ func init() {
 
 	flags.StringSliceVarP(&af.TypeFilter, "type", "T", []string{}, "File types to include (e.g., --type yaml,json)")
 	flags.StringSliceVarP(&af.ExcludeTypeFilter, "exclude-type", "E", []string{}, "File types to exclude (e.g., --exclude-type yaml,json)")
-	flags.StringSliceVarP(&af.IgnoreDirs, "ignore-dirs", "i", []string{"/proc", "/dev", "/sys", "/run"},
+	flags.StringSliceVarP(&af.IgnoreDirs, "ignore-dirs", "i", defaultIgnoreDirs(),
 		"Paths to ignore (separated by comma). Can be absolute or relative to current directory")
 	flags.StringSliceVarP(&af.IgnoreDirPatterns, "ignore-dirs-pattern", "I", []string{},
 		"Path patterns to ignore (separated by comma)")
@@ -113,9 +113,24 @@ func init() {
 		&af.ScanTimeout, "scan-timeout", "",
 		"Stop scanning after DURATION and show partial results (e.g., 30m, 1h30m). TUI mode only",
 	)
+	flags.BoolVar(&af.DedupDirs, "dedup-dirs", false,
+		"Count directories reachable via multiple paths (firmlinks, bind mounts, hard-linked dirs) only once")
 
 	initConfig()
 	setDefaults()
+}
+
+// defaultIgnoreDirs returns the directories ignored by default, tailored to the
+// host OS. On macOS the Data volume is mounted at /System/Volumes/Data and also
+// surfaced under / via firmlinks (/Users, /Applications, ...); scanning / would
+// otherwise count it twice and report roughly double the real disk usage, so the
+// duplicate mountpoint is ignored by default.
+func defaultIgnoreDirs() []string {
+	dirs := []string{"/proc", "/dev", "/sys", "/run"}
+	if runtime.GOOS == "darwin" {
+		dirs = append(dirs, "/System/Volumes/Data")
+	}
+	return dirs
 }
 
 var systemConfigPath = "/etc/gdu.yaml"

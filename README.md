@@ -44,6 +44,7 @@ Flags:
       --collapse-path                 Collapse single-child directory chains
       --config-file string            Read config from file (default is $HOME/.gdu.yaml)
   -D, --db string                     Store analysis in database (*.sqlite for SQLite, *.badger for BadgerDB)
+      --dedup-dirs                    Count directories reachable via multiple paths (firmlinks, bind mounts, hard-linked dirs) only once
       --depth int                     Show directory structure up to specified depth in non-interactive mode (0 means the flag is ignored)
       --enable-profiling              Enable collection of profiling data and provide it on http://localhost:6060/debug/pprof/
   -E, --exclude-type strings          File types to exclude (e.g., --exclude-type yaml,json)
@@ -131,6 +132,18 @@ Basic list of actions in interactive mode (show help modal for more):
     gdu --db=tmp.badger /                 # use persistent key-value storage for saving analysis data
     gdu --db=tmp.db /                     # use persistent SQLite storage for saving analysis data
     gdu -r /                              # read saved analysis data from persistent key-value storage
+
+    gdu --dedup-dirs /                    # count dirs reachable via multiple paths (firmlinks, bind mounts) once
+
+### macOS
+
+On macOS the Data volume is mounted at `/System/Volumes/Data` and also surfaced
+under `/` through firmlinks (`/Users`, `/Applications`, ...). Scanning `/` would
+otherwise count that volume twice and report roughly double the real usage, so
+`/System/Volumes/Data` is ignored by default. To scan it explicitly, run
+`gdu /System/Volumes/Data` or override with `-i ''`. The general `--dedup-dirs`
+flag prevents the same double counting for any aliased directory (firmlinks,
+bind mounts, hard-linked dirs) using device+inode identity.
 
 ## Modes
 

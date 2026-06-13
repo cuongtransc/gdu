@@ -111,3 +111,6 @@ func (a *MockedAnalyzer) SetTimeFilter(timeFilter TimeFilter) {}
 func (a *MockedAnalyzer) SetArchiveBrowsing(v bool) {
 	a.ArchiveBrowsing = v
 }
+
+// SetDedupDirs does nothing
+func (a *MockedAnalyzer) SetDedupDirs(v bool) {}

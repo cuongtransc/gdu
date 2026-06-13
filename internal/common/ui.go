@@ -49,6 +49,12 @@ func (ui *UI) SetArchiveBrowsing(v bool) {
 	ui.Analyzer.SetArchiveBrowsing(v)
 }
 
+// SetDedupDirs enables skipping directories already scanned under a different
+// path (same device+inode), e.g. macOS firmlinks or bind mounts.
+func (ui *UI) SetDedupDirs(v bool) {
+	ui.Analyzer.SetDedupDirs(v)
+}
+
 // binary multiplies prefixes (IEC)
 const (
 	_ float64 = 1 << (10 * iota)

@@ -102,6 +102,9 @@ func (a *MockedAnalyzer) SetArchiveBrowsing(v bool) {}
 // SetFileTypeFilter does nothing
 func (a *MockedAnalyzer) SetFileTypeFilter(fileTypeFilter common.ShouldFileBeIgnored) {}
 
+// SetDedupDirs does nothing
+func (a *MockedAnalyzer) SetDedupDirs(v bool) {}
+
 // ItemFromDirWithErr returns error
 func ItemFromDirWithErr(dir, file fs.Item) error {
 	return errors.New("Failed")

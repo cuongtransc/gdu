@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dundee/gdu/v5/cmd/gdu/app"
@@ -107,5 +108,38 @@ func TestInitConfigMalformedUserConfig(t *testing.T) {
 
 	if configErr == nil {
 		t.Fatal("expected configErr to be set for malformed user config, got nil")
+	}
+}
+
+func TestDefaultIgnoreDirsAlwaysHasProc(t *testing.T) {
+	found := false
+	for _, d := range defaultIgnoreDirs() {
+		if d == "/proc" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected /proc in default ignore dirs")
+	}
+}
+
+func TestDefaultIgnoreDirsMacOSDataVolume(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS-only firmlink default")
+	}
+	found := false
+	for _, d := range defaultIgnoreDirs() {
+		if d == "/System/Volumes/Data" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("expected /System/Volumes/Data in default ignore dirs on macOS")
+	}
+}
+
+func TestDedupDirsFlagRegistered(t *testing.T) {
+	if rootCmd.Flags().Lookup("dedup-dirs") == nil {
+		t.Fatal("expected dedup-dirs flag to be registered")
 	}
 }

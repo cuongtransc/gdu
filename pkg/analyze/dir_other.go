@@ -26,6 +26,12 @@ func setDirPlatformSpecificAttrs(dir *Dir, path string) {
 	dir.Mtime = stat.ModTime()
 }
 
+// getDirIdentity is a no-op on platforms without inode semantics, so directory
+// deduplication is effectively disabled there.
+func getDirIdentity(_ string) (dirIdentity, bool) {
+	return dirIdentity{}, false
+}
+
 // getSyscallStats extracts usage and inode info from os.FileInfo using syscall
 func getSyscallStats(info os.FileInfo) (usage int64, mli uint64) {
 	usage = info.Size()

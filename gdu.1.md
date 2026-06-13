@@ -50,6 +50,8 @@ is not so huge.
 
 **\--scan-timeout** Stop scanning after DURATION and show partial results (e.g., 30m, 1h30m). Interactive (TUI) mode only. The scan can also be stopped at any time by pressing Esc or Ctrl-C.
 
+**\--dedup-dirs** Count directories reachable via multiple paths (macOS firmlinks, bind mounts, hard-linked directories) only once, using device+inode identity. On macOS, /System/Volumes/Data is ignored by default for the same reason.
+
 **-l**, **\--log-file**=\"/dev/null\" Path to a logfile
 
 **-m**, **\--max-cores** Set max cores that Gdu will use.

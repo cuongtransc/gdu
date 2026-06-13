@@ -29,6 +29,9 @@ type Analyzer interface {
 	SetTimeFilter(timeFilter TimeFilter)
 	SetArchiveBrowsing(bool)
 	SetFileTypeFilter(filter ShouldFileBeIgnored)
+	// SetDedupDirs enables skipping directories already scanned under a
+	// different path (same device+inode).
+	SetDedupDirs(bool)
 	GetDone() SignalGroup
 	GetProgress() CurrentProgress
 	ResetProgress()

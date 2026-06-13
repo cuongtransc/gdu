@@ -57,6 +57,11 @@ func (a *ParallelStableOrderAnalyzer) processDir(path string) *Dir {
 
 	a.wait.Add(1)
 
+	if a.shouldSkipVisited(path) {
+		a.wait.Done()
+		return newEmptyDir(path)
+	}
+
 	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Print(err.Error())

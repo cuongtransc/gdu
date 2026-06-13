@@ -45,6 +45,7 @@ type UI interface {
 	SetTimeFilter(timeFilter common.TimeFilter)
 	SetArchiveBrowsing(value bool)
 	SetCollapsePath(value bool)
+	SetDedupDirs(value bool)
 	StartUILoop() error
 }
 
@@ -104,6 +105,7 @@ type Flags struct {
 	ArchiveBrowsing    bool     `yaml:"archive-browsing"`
 	CollapsePath       bool     `yaml:"collapse-path"`
 	BrowseParentDirs   bool     `yaml:"browse-parent-dirs"`
+	DedupDirs          bool     `yaml:"dedup-dirs"`
 }
 
 // ShouldRunInNonInteractiveMode checks if the application should run in non-interactive mode
@@ -265,6 +267,9 @@ func (a *App) Run() error {
 	}
 	if a.Flags.CollapsePath {
 		ui.SetCollapsePath(true)
+	}
+	if a.Flags.DedupDirs {
+		ui.SetDedupDirs(true)
 	}
 
 	// Set up time filter if any time flags are provided

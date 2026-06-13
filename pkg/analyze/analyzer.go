@@ -1,11 +1,20 @@
 package analyze
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/dundee/gdu/v5/internal/common"
 )
+
+// dirIdentity uniquely identifies a directory by its device and inode numbers.
+// Two paths with the same identity (e.g. a macOS firmlink and its canonical
+// path, or a bind mount) point at the same on-disk directory.
+type dirIdentity struct {
+	dev uint64
+	ino uint64
+}
 
 // BaseAnalyzer provides common logic for all analyzers
 type BaseAnalyzer struct {
@@ -24,6 +33,8 @@ type BaseAnalyzer struct {
 	archiveBrowsing         bool
 	progressTicker          *time.Ticker
 	stopped                 atomic.Bool
+	dedupDirs               bool
+	visitedDirs             *sync.Map
 }
 
 // Init initializes the BaseAnalyzer
@@ -37,6 +48,33 @@ func (a *BaseAnalyzer) Init() {
 	a.progressCurrentItemName.Store("")
 	a.progressTicker = time.NewTicker(50 * time.Millisecond)
 	a.stopped.Store(false)
+	a.visitedDirs = &sync.Map{}
+}
+
+// SetDedupDirs enables skipping directories already scanned under a different
+// path (same device+inode), preventing double-counting via macOS firmlinks,
+// bind mounts or hard-linked directories.
+func (a *BaseAnalyzer) SetDedupDirs(v bool) {
+	a.dedupDirs = v
+}
+
+// shouldSkipVisited reports whether path should be skipped because dedup is
+// enabled and the directory was already scanned under a different path.
+func (a *BaseAnalyzer) shouldSkipVisited(path string) bool {
+	return a.dedupDirs && !a.firstVisit(path)
+}
+
+// firstVisit reports whether path is being scanned for the first time. When
+// deduplication is enabled and the directory's device+inode was already seen,
+// it returns false so the caller can skip it. If the identity cannot be
+// determined (e.g. Windows), it always returns true.
+func (a *BaseAnalyzer) firstVisit(path string) bool {
+	id, ok := getDirIdentity(path)
+	if !ok {
+		return true
+	}
+	_, loaded := a.visitedDirs.LoadOrStore(id, struct{}{})
+	return !loaded
 }
 
 // Stop signals the analyzer to stop descending into not-yet-scanned directories.

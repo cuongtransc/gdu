@@ -699,6 +699,7 @@ func (m *uiTimeFilterMock) SetTimeFilter(timeFilter common.TimeFilter) {
 }
 func (m *uiTimeFilterMock) SetArchiveBrowsing(value bool) {}
 func (m *uiTimeFilterMock) SetCollapsePath(value bool)    {}
+func (m *uiTimeFilterMock) SetDedupDirs(value bool)       {}
 func (m *uiTimeFilterMock) StartUILoop() error            { return nil }
 
 func TestSetTimeFiltersInvalid(t *testing.T) {

@@ -48,6 +48,10 @@ func (a *SequentialAnalyzer) processDir(path string) *Dir {
 		dirCount  int
 	)
 
+	if a.shouldSkipVisited(path) {
+		return newEmptyDir(path)
+	}
+
 	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Print(err.Error())

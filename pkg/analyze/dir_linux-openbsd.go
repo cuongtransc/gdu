@@ -41,6 +41,15 @@ func setDirPlatformSpecificAttrs(dir *Dir, path string) {
 	dir.Mtime = time.Unix(int64(stat.Mtim.Sec), int64(stat.Mtim.Nsec))
 }
 
+// getDirIdentity returns the device+inode identity of the directory at path.
+func getDirIdentity(path string) (dirIdentity, bool) {
+	var stat syscall.Stat_t
+	if err := syscall.Stat(path, &stat); err != nil {
+		return dirIdentity{}, false
+	}
+	return dirIdentity{dev: uint64(stat.Dev), ino: stat.Ino}, true
+}
+
 // getSyscallStats extracts usage and inode info from os.FileInfo using syscall
 func getSyscallStats(info os.FileInfo) (usage int64, mli uint64) {
 	if stat, ok := info.Sys().(*syscall.Stat_t); ok {

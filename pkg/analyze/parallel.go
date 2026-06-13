@@ -45,6 +45,7 @@ func (a *ParallelAnalyzer) AnalyzeDir(
 	return dir
 }
 
+// nolint:gocyclo // Why: core directory walker handling dirs, files, symlinks, archives and filters
 func (a *ParallelAnalyzer) processDir(path string) *Dir {
 	var (
 		file       fs.Item
@@ -56,6 +57,11 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 	)
 
 	a.wait.Add(1)
+
+	if a.shouldSkipVisited(path) {
+		a.wait.Done()
+		return newEmptyDir(path)
+	}
 
 	files, err := os.ReadDir(path)
 	if err != nil {
@@ -191,6 +197,19 @@ func (a *ParallelAnalyzer) processDir(path string) *Dir {
 	a.progressItemCount.Add(int64(len(files)))
 	a.progressTotalUsage.Add(totalUsage)
 	return dir
+}
+
+// newEmptyDir returns a placeholder Dir for a directory that was skipped
+// (e.g. an already-visited firmlink target). It contributes nothing to totals.
+func newEmptyDir(path string) *Dir {
+	return &Dir{
+		File: &File{
+			Name: filepath.Base(path),
+			Flag: ' ',
+		},
+		ItemCount: 1,
+		Files:     fs.Files{},
+	}
 }
 
 func getDirFlag(err error, items int) rune {

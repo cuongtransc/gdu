@@ -168,6 +168,10 @@ func (a *TopDirAnalyzer) processSubDir(path string, topDir *TopDir) {
 		info       os.FileInfo
 	)
 
+	if a.shouldSkipVisited(path) {
+		return // already scanned under a different path
+	}
+
 	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Print(err.Error())
