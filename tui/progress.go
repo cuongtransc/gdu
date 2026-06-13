@@ -37,6 +37,15 @@ func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGro
 		case <-ticker.C:
 		}
 
+		// Once a stop was requested, the scan still needs to drain in-flight
+		// directories and finalize stats, which can take a moment. Switch the
+		// modal to a clear "stopping" state so the interrupt is acknowledged
+		// immediately instead of looking frozen.
+		if analyzer.IsStopped() {
+			ui.app.QueueUpdateDraw(ui.showScanStopping)
+			continue
+		}
+
 		progress := analyzer.GetProgress()
 
 		func(itemCount int64, totalUsage int64, currentItem string) {
@@ -66,6 +75,18 @@ func (ui *UI) updateProgress(analyzer common.Analyzer, doneChan common.SignalGro
 			})
 		}(progress.ItemCount, progress.TotalUsage, progress.CurrentItemName)
 	}
+}
+
+// showScanStopping switches the progress modal to a "stopping" state so a
+// requested interrupt (Esc/Ctrl-C/timeout) is acknowledged immediately, even
+// while the scan drains and partial stats are finalized. Must run on the UI
+// goroutine.
+func (ui *UI) showScanStopping() {
+	if ui.progress == nil {
+		return
+	}
+	ui.progress.SetTitle(" Stopping... ")
+	ui.progress.SetText("Scan interrupted — finalizing partial results, please wait...")
 }
 
 // writeTerminalProgress emits an OSC 9;4 sequence to update the terminal

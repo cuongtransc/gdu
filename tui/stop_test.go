@@ -126,6 +126,38 @@ func TestAnalyzePathShowsPartialWhenStopped(t *testing.T) {
 	assert.Contains(t, ui.currentDirLabel.GetText(true), "partial scan")
 }
 
+// Pressing Esc/Ctrl-C during a scan must immediately flip the progress modal to
+// a "stopping" state so the interrupt is visibly acknowledged.
+func TestEscapeShowsStoppingFeedback(t *testing.T) {
+	simScreen := testapp.CreateSimScreen()
+	defer simScreen.Fini()
+
+	app := testapp.CreateMockedApp(false)
+	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
+
+	ui.progress = tview.NewTextView().SetText("Scanning...")
+	ui.pages.AddPage("progress", tview.NewBox(), true, true)
+
+	ui.keyPressed(tcell.NewEventKey(tcell.KeyEsc, 0, 0))
+
+	assert.Contains(t, ui.progress.GetText(true), "finalizing partial results")
+}
+
+func TestShowScanStopping(t *testing.T) {
+	simScreen := testapp.CreateSimScreen()
+	defer simScreen.Fini()
+
+	app := testapp.CreateMockedApp(false)
+	ui := CreateUI(app, simScreen, &bytes.Buffer{}, true, true, false, false)
+
+	// No progress modal yet -> must not panic.
+	ui.showScanStopping()
+
+	ui.progress = tview.NewTextView()
+	ui.showScanStopping()
+	assert.Contains(t, ui.progress.GetText(true), "interrupted")
+}
+
 func TestShowScanStoppedModal(t *testing.T) {
 	simScreen := testapp.CreateSimScreen()
 	defer simScreen.Fini()

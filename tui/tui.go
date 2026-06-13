@@ -354,6 +354,7 @@ func (ui *UI) StartUILoop() error {
 func (ui *UI) handleSignal(s os.Signal) bool {
 	if s == syscall.SIGINT && ui.scanning.Load() {
 		ui.Analyzer.Stop()
+		ui.app.QueueUpdateDraw(ui.showScanStopping) // immediate feedback
 		return true
 	}
 	ui.app.QueueUpdateDraw(func() {
