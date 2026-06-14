@@ -1,22 +1,92 @@
 min_version = "2024.12.0"
 
 [tools]
-go = "1.26"
+go = "1.26.1"
+golangci-lint = "2.11.2"
+
+[env]
+# Module path used for -ldflags -X version injection (see build/install).
+GDU_PKG = "github.com/dundee/gdu/v5"
+
+# --- Build & install -------------------------------------------------------
 
 [tasks.build]
-description = "Build gdu binary into dist/"
-sources = ["go.mod", "go.sum", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go", "tui/**/*.go", "stdout/**/*.go", "report/**/*.go"]
+description = "Build gdu binary into dist/ with version info baked in"
+sources = ["go.mod", "go.sum", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go", "tui/**/*.go", "stdout/**/*.go", "report/**/*.go", "default.pgo"]
 outputs = ["dist/gdu"]
-run = "CGO_ENABLED=0 go build -pgo=default.pgo -o dist/gdu ./cmd/gdu"
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+version="$(git describe --tags 2>/dev/null || echo dev)"
+ldflags="-s -w \
+  -X ${GDU_PKG}/build.Version=${version} \
+  -X ${GDU_PKG}/build.User=$(id -u -n) \
+  -X ${GDU_PKG}/build.Time=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+mkdir -p dist
+CGO_ENABLED=0 go build -trimpath -mod=readonly -pgo=default.pgo \
+  -ldflags="${ldflags}" -o dist/gdu ./cmd/gdu
+echo "built dist/gdu (${version})"
+'''
+
+# Installs as `gdu-go` to avoid clashing with coreutils' `gdu` (GNU du) on
+# Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run install
+# Default ~/.local/bin avoids `go install`, whose GOBIN mise overrides to its
+# own throwaway toolchain sandbox (~/.local/share/mise/installs/go/.../bin).
+[tasks.install]
+description = "Install the built binary as gdu-go into ~/.local/bin (override via GDU_BIN / GDU_INSTALL_DIR)"
+depends = ["build"]
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+dest="${GDU_INSTALL_DIR:-$HOME/.local/bin}"
+name="${GDU_BIN:-gdu-go}"
+mkdir -p "${dest}"
+install -m 0755 dist/gdu "${dest}/${name}"
+echo "installed -> ${dest}/${name} ($(./dist/gdu --version | head -1 | tr -s ' '))"
+case ":$PATH:" in *":${dest}:"*) ;; *) echo "warning: ${dest} is not on \$PATH" ;; esac
+'''
+
+[tasks.run]
+description = "Build and run gdu (args after --, e.g. mise run run -- -npc ~)"
+run = "go run ./cmd/gdu"
+
+# --- Quality gates ---------------------------------------------------------
 
 [tasks.test]
 description = "Run all tests"
 run = "go test ./..."
 
+[tasks.cover]
+description = "Run tests with race detector and write coverage profile"
+sources = ["**/*.go"]
+outputs = ["coverage.out"]
+run = [
+  "go test -race -covermode=atomic -coverprofile=coverage.out ./...",
+  "go tool cover -func=coverage.out | tail -1",
+]
+
 [tasks.lint]
 description = "Run golangci-lint"
 run = "golangci-lint run -c .golangci.yml"
 
+[tasks.fmt]
+description = "Format code with gofmt"
+run = "gofmt -s -w ."
+
+[tasks.vet]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks.tidy]
+description = "Tidy go.mod / go.sum"
+run = "go mod tidy"
+
 [tasks.ci]
-description = "Run lint and test"
+description = "Full local CI gate: lint + test"
 depends = ["lint", "test"]
+
+# --- Housekeeping ----------------------------------------------------------
+
+[tasks.clean]
+description = "Remove build and coverage artifacts"
+run = "rm -rf dist coverage.out coverage.txt coverage.html"
