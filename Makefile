@@ -54,14 +54,7 @@ build-all:
 		$(PACKAGE)/$(CMD_GDU)
 
 	CGO_ENABLED=0 gox \
-		-os="windows" \
-		-arch="amd64" \
-		-output="dist/gdu_{{.OS}}_{{.Arch}}" \
-		-ldflags="$(LDFLAGS)" \
-		$(PACKAGE)/$(CMD_GDU)
-
-	CGO_ENABLED=0 gox \
-		-os="linux freebsd netbsd openbsd" \
+		-os="linux" \
 		-output="dist/gdu_{{.OS}}_{{.Arch}}" \
 		-ldflags="$(LDFLAGS)" \
 		$(PACKAGE)/$(CMD_GDU)
@@ -73,10 +66,8 @@ build-all:
 	CGO_ENABLED=0 GOOS=linux GOARM=6 GOARCH=arm $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_armv6l $(PACKAGE)/$(CMD_GDU)
 	CGO_ENABLED=0 GOOS=linux GOARM=7 GOARCH=arm $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_armv7l $(PACKAGE)/$(CMD_GDU)
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_arm64 $(PACKAGE)/$(CMD_GDU)
-	CGO_ENABLED=0 GOOS=android GOARCH=arm64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_android_arm64 $(PACKAGE)/$(CMD_GDU)
 
-	cd dist; for file in gdu_linux_* gdu_darwin_* gdu_netbsd_* gdu_openbsd_* gdu_freebsd_* gdu_android_*; do tar czf $$file.tgz $$file; done
-	cd dist; for file in gdu_windows_*; do zip $$file.zip $$file; done
+	cd dist; for file in gdu_linux_* gdu_darwin_*; do tar czf $$file.tgz $$file; done
 
 gdu.1: gdu.1.md
 	sed 's/{{date}}/$(DATE)/g' gdu.1.md > gdu.1.date.md
