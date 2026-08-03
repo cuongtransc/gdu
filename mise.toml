@@ -28,6 +28,39 @@ CGO_ENABLED=0 go build -trimpath -mod=readonly -pgo=default.pgo \
 echo "built dist/gdu (${version})"
 '''
 
+# Cross-build. CGO is already off in `build`, so this is a plain GOOS/GOARCH
+# swap with no toolchain needed. ldflags are duplicated from `build` rather than
+# shared: `build` is cached on dist/gdu, and reusing it under a different -o
+# would let a fresh dist/gdu skip a cross-build that never ran.
+[tasks."build:linux"]
+description = "Cross-build static Linux binaries into dist/gdu_linux_<arch> (default amd64,arm64) for deploying to a Linux host from macOS"
+usage = '''
+arg "<arch>" help="comma-separated GOARCH list" default="amd64,arm64"
+'''
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+version="$(git describe --tags 2>/dev/null || echo dev)"
+ldflags="-s -w \
+  -X ${GDU_PKG}/build.Version=${version} \
+  -X ${GDU_PKG}/build.User=$(id -u -n) \
+  -X ${GDU_PKG}/build.Time=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+supported="$(go tool dist list | grep '^linux/' | cut -d/ -f2)"
+mkdir -p dist
+IFS=',' read -ra arches <<< "${usage_arch}"
+for arch in "${arches[@]}"; do
+  arch="${arch// /}"
+  if ! grep -qx "${arch}" <<< "${supported}"; then
+    echo "error: linux/${arch} is not a valid target; supported: $(tr '\n' ' ' <<< "${supported}")" >&2
+    exit 1
+  fi
+  out="dist/gdu_linux_${arch}"
+  CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -trimpath -mod=readonly -pgo=default.pgo \
+    -ldflags="${ldflags}" -o "${out}" ./cmd/gdu
+  echo "built ${out} (${version}, linux/${arch})"
+done
+'''
+
 # Installs as `gdu-go` to avoid clashing with coreutils' `gdu` (GNU du) on
 # Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run install
 # Default ~/.local/bin avoids `go install`, whose GOBIN mise overrides to its
