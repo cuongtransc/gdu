@@ -7,6 +7,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Required for softprops/action-gh-release to create the release; repos whose
+    # default GITHUB_TOKEN is read-only fail at the upload step without it.
+    permissions:
+      contents: write
     steps:
       - name: Install Go
         uses: actions/setup-go@v6
@@ -18,15 +22,11 @@ jobs:
         run: go test -v -covermode=count ./...
       - name: Install tooling
         run: go install github.com/mitchellh/gox@latest
-      - name: Import GPG key
-        run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          echo "use-agent" >> ~/.gnupg/gpg.conf
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.PRIVATE_GPG_KEY }}
+      # Artifacts are published unsigned; sha256sums.txt is the only integrity
+      # check. Upstream signs it with a GPG key this fork does not hold.
       - name: Build
         run: |
+          set -euo pipefail
           make clean
           make tarball
           make build-all
@@ -34,9 +34,7 @@ jobs:
           make clean-uncompressed-dist
           cd dist
           sha256sum * > sha256sums.txt
-          gpg --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" --sign --armor --detach-sign sha256sums.txt
-        env:
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          cat sha256sums.txt
       - name: Release
         uses: softprops/action-gh-release@v3
         with:
