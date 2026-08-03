@@ -46,26 +46,13 @@ build-docker:
 build-all:
 	@echo "Version: " $(VERSION)
 	-mkdir dist
-	CGO_ENABLED=0 gox \
-		-os="darwin" \
-		-arch="amd64 arm64" \
-		-output="dist/gdu_{{.OS}}_{{.Arch}}" \
-		-ldflags="$(LDFLAGS)" \
-		$(PACKAGE)/$(CMD_GDU)
-
-	CGO_ENABLED=0 gox \
-		-os="linux" \
-		-output="dist/gdu_{{.OS}}_{{.Arch}}" \
-		-ldflags="$(LDFLAGS)" \
-		$(PACKAGE)/$(CMD_GDU)
-
 	GOFLAGS="$(GOFLAGS)" CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_amd64 $(PACKAGE)/$(CMD_GDU)
-	GOFLAGS="$(GOFLAGS_STATIC)" CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_amd64_static $(PACKAGE)/$(CMD_GDU)
+	GOFLAGS="$(GOFLAGS)" CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_arm64 $(PACKAGE)/$(CMD_GDU)
 
-	CGO_ENABLED=0 GOOS=linux GOARM=5 GOARCH=arm $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_armv5l $(PACKAGE)/$(CMD_GDU)
-	CGO_ENABLED=0 GOOS=linux GOARM=6 GOARCH=arm $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_armv6l $(PACKAGE)/$(CMD_GDU)
-	CGO_ENABLED=0 GOOS=linux GOARM=7 GOARCH=arm $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_armv7l $(PACKAGE)/$(CMD_GDU)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_linux_arm64 $(PACKAGE)/$(CMD_GDU)
+	# darwin uses GOFLAGS_STATIC (no -buildmode=pie): a PIE darwin build wants the
+	# external linker, which the Linux release runner has no Apple toolchain for.
+	GOFLAGS="$(GOFLAGS_STATIC)" CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_darwin_amd64 $(PACKAGE)/$(CMD_GDU)
+	GOFLAGS="$(GOFLAGS_STATIC)" CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GOBIN) build -ldflags="$(LDFLAGS)" -o dist/gdu_darwin_arm64 $(PACKAGE)/$(CMD_GDU)
 
 	cd dist; for file in gdu_linux_* gdu_darwin_*; do tar czf $$file.tgz $$file; done
 
@@ -179,7 +166,6 @@ release:
 
 install-dev-dependencies:
 	$(GOBIN) install gotest.tools/gotestsum@latest
-	$(GOBIN) install github.com/mitchellh/gox@latest
 	$(GOBIN) install honnef.co/go/gotraceui/cmd/gotraceui@latest
 	$(GOBIN) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.2
 

@@ -20,8 +20,6 @@ jobs:
         uses: actions/checkout@v6
       - name: Run tests
         run: go test -v -covermode=count ./...
-      - name: Install tooling
-        run: go install github.com/mitchellh/gox@latest
       # Artifacts are published unsigned; sha256sums.txt is the only integrity
       # check. Upstream signs it with a GPG key this fork does not hold.
       - name: Build
