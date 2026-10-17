@@ -5,7 +5,7 @@ go = "1.26.1"
 golangci-lint = "2.11.2"
 
 [env]
-# Module path used for -ldflags -X version injection (see build/install).
+# Module path used for -ldflags -X version injection (see build, build:linux).
 GDU_PKG = "github.com/dundee/gdu/v5"
 
 # --- Build & install -------------------------------------------------------
