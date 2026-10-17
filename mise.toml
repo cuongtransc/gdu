@@ -11,7 +11,7 @@ GDU_PKG = "github.com/dundee/gdu/v5"
 # --- Build & install -------------------------------------------------------
 
 [tasks.build]
-description = "Build gdu binary into dist/ with version info baked in"
+description = "Build dist/gdu with version info baked in"
 sources = ["go.mod", "go.sum", "cmd/**/*.go", "internal/**/*.go", "pkg/**/*.go", "tui/**/*.go", "stdout/**/*.go", "report/**/*.go", "default.pgo"]
 outputs = ["dist/gdu"]
 run = '''
@@ -33,7 +33,7 @@ echo "built dist/gdu (${version})"
 # shared: `build` is cached on dist/gdu, and reusing it under a different -o
 # would let a fresh dist/gdu skip a cross-build that never ran.
 [tasks."build:linux"]
-description = "Cross-build static Linux binaries into dist/gdu_linux_<arch> (default amd64,arm64) for deploying to a Linux host from macOS"
+description = "Cross-build static Linux binaries for deploying from macOS"
 usage = '''
 arg "<arch>" help="comma-separated GOARCH list" default="amd64,arm64"
 '''
@@ -62,11 +62,12 @@ done
 '''
 
 # Installs as `gdu-go` to avoid clashing with coreutils' `gdu` (GNU du) on
-# Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run install
+# Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run build:install
+# Not named `install`: `mise install` is the builtin tool installer and wins.
 # Default ~/.local/bin avoids `go install`, whose GOBIN mise overrides to its
 # own throwaway toolchain sandbox (~/.local/share/mise/installs/go/.../bin).
-[tasks.install]
-description = "Install the built binary as gdu-go into ~/.local/bin (override via GDU_BIN / GDU_INSTALL_DIR)"
+[tasks."build:install"]
+description = "Build, then install as gdu-go into ~/.local/bin"
 depends = ["build"]
 run = '''
 #!/usr/bin/env bash
@@ -79,8 +80,8 @@ echo "installed -> ${dest}/${name} ($(./dist/gdu --version | head -1 | tr -s ' '
 case ":$PATH:" in *":${dest}:"*) ;; *) echo "warning: ${dest} is not on \$PATH" ;; esac
 '''
 
-[tasks.run]
-description = "Build and run gdu (args after --, e.g. mise run run -- -npc ~)"
+[tasks.dev]
+description = "Run gdu from source (args after --, e.g. mise run dev -- -npc ~)"
 run = "go run ./cmd/gdu"
 
 # --- Quality gates ---------------------------------------------------------
@@ -89,8 +90,8 @@ run = "go run ./cmd/gdu"
 description = "Run all tests"
 run = "go test ./..."
 
-[tasks.cover]
-description = "Run tests with race detector and write coverage profile"
+[tasks."test:cover"]
+description = "Run tests with race detector and write coverage.out"
 sources = ["**/*.go"]
 outputs = ["coverage.out"]
 run = [
@@ -98,24 +99,23 @@ run = [
   "go tool cover -func=coverage.out | tail -1",
 ]
 
+# golangci-lint covers go vet (govet) and gofmt/goimports (formatters), so
+# there is no separate vet or fmt:check task.
 [tasks.lint]
-description = "Run golangci-lint"
+description = "Lint and check formatting (read-only)"
 run = "golangci-lint run -c .golangci.yml"
 
+[tasks."lint:fix"]
+description = "Lint with autofix (rewrites files)"
+run = "golangci-lint run -c .golangci.yml --fix"
+
+# Call as `mise run fmt`: bare `mise fmt` is the builtin mise.toml formatter.
 [tasks.fmt]
-description = "Format code with gofmt"
-run = "gofmt -s -w ."
-
-[tasks.vet]
-description = "Run go vet"
-run = "go vet ./..."
-
-[tasks.tidy]
-description = "Tidy go.mod / go.sum"
-run = "go mod tidy"
+description = "Format code with gofmt + goimports (rewrites files)"
+run = "golangci-lint fmt -c .golangci.yml"
 
 [tasks.ci]
-description = "Full local CI gate: lint + test"
+description = "Gate before claiming done: lint + test (read-only)"
 depends = ["lint", "test"]
 
 # --- Housekeeping ----------------------------------------------------------
