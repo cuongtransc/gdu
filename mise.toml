@@ -62,12 +62,12 @@ done
 '''
 
 # Installs as `gdu-go` to avoid clashing with coreutils' `gdu` (GNU du) on
-# Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run build:install
+# Homebrew. Overrides: GDU_BIN=gdu / GDU_INSTALL_DIR=/usr/local/bin mise run cli:install
 # Not named `install`: `mise install` is the builtin tool installer and wins.
 # Default ~/.local/bin avoids `go install`, whose GOBIN mise overrides to its
 # own throwaway toolchain sandbox (~/.local/share/mise/installs/go/.../bin).
-[tasks."build:install"]
-description = "Build, then install as gdu-go into ~/.local/bin"
+[tasks."cli:install"]
+description = "Build, then install as gdu-go into ~/.local/bin for use anywhere"
 depends = ["build"]
 run = '''
 #!/usr/bin/env bash
