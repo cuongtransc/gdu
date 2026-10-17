@@ -118,6 +118,29 @@ run = "golangci-lint fmt -c .golangci.yml"
 description = "Gate before claiming done: lint + test (read-only)"
 depends = ["lint", "test"]
 
+# --- Setup -----------------------------------------------------------------
+
+[tasks.setup]
+description = "One command after cloning: git hooks, then next steps"
+run = """
+# No local hooksPath when the global ct-hook-dispatch exists (it runs .githooks).
+hooks_dir=$(git config --global --get core.hooksPath) || hooks_dir=
+case "$hooks_dir" in
+  "~") hooks_dir=$HOME ;;
+  "~/"*) hooks_dir="$HOME/${hooks_dir#"~/"}" ;;
+esac
+if [ -n "$hooks_dir" ] && [ -x "$hooks_dir/ct-hook-dispatch" ]; then
+  [ "$(git config --local --get core.hooksPath)" = ".githooks" ] && git config --local --unset core.hooksPath
+  echo 'git hooks: global dispatcher runs .githooks'
+else
+  git config core.hooksPath .githooks
+fi
+echo
+echo 'Setup complete. Next:'
+echo '  mise run dev     run gdu from source'
+echo '  mise run ci      the gate, also runs on pre-commit'
+"""
+
 # --- Housekeeping ----------------------------------------------------------
 
 [tasks.clean]

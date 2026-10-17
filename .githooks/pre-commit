@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Runs the gate before every commit. Installed by `mise run setup`.
+set -euo pipefail
+
+# Git exports these to hooks; tests that run `git -C <tmp>` would write to this repo.
+for v in $(git rev-parse --local-env-vars); do unset "$v"; done
+
+exec mise run ci
